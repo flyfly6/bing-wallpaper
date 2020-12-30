@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1117
+export PATH=/opt/homebrew/bin:$PATH
 
 readonly SCRIPT=$(basename "$0")
 readonly VERSION='0.4.0'
-readonly RESOLUTIONS=(1920x1200 1920x1080 800x480 400x240)
+readonly RESOLUTIONS=(UHD 1920x1200 1920x1080 800x480 400x240)
+
 
 usage() {
 cat <<EOF
@@ -44,7 +46,7 @@ transform_urls() {
 }
 
 # Defaults
-PICTURE_DIR="$HOME/Pictures/bing-wallpapers/"
+PICTURE_DIR="$HOME/Pictures/bing-wallpapers"
 RESOLUTION="1920x1080"
 
 # Option parsing
@@ -105,20 +107,22 @@ done
 mkdir -p "${PICTURE_DIR}"
 
 # Parse bing.com and acquire picture URL(s)
-read -ra urls < <(curl -sL $PROTO://www.bing.com | \
-    grep -Eo "url\(.*?\)" | \
-    sed -e "s/url(\([^']*\)).*/http:\/\/bing.com\1/" | \
-    transform_urls)
+# read -ra urls < <(curl -sL $PROTO://cn.bing.com | \
+#     grep -Eo "url\(.*?\)" | \
+#     sed -e "s/url(\([^']*\)).*/http:\/\/cn.bing.com\1/" | \
+#     transform_urls)
 
-if [ -n "$BOOST" ]; then
-    read -ra archiveUrls < <(curl -sL "$PROTO://www.bing.com/HPImageArchive.aspx?format=js&n=$BOOST" | \
-        grep -Eo "url\(.*?\)" | \
-        sed -e "s/url(\([^']*\)).*/http:\/\/bing.com\1/" | \
-        transform_urls)
-    urls=( "${urls[@]}" "${archiveUrls[@]}" )
+if [ -z "$BOOST" ]; then
+    BOOST='1'
 fi
 
-for p in "${urls[@]}"; do
+read -ra archiveUrls < <(curl -sL "$PROTO://cn.bing.com/HPImageArchive.aspx?format=js&n=$BOOST" | \
+    jq ".images | .[] | .urlbase + \"_$RESOLUTION.jpg\"" | \
+    sed -e 's/^"\(.*\)"$/\1/' | \
+    tr "\n" " ")
+# urls=( "${urls[@]}" "${archiveUrls[@]}" )
+
+for p in "${archiveUrls[@]}"; do
     if [ -z "$FILENAME" ]; then
         filename=$(echo "$p" | sed -e 's/.*[?&;]id=\([^&]*\).*/\1/' | grep -oe '[^\.]*\.[^\.]*$')
     else
@@ -126,14 +130,15 @@ for p in "${urls[@]}"; do
     fi
     if [ -n "$FORCE" ] || [ ! -f "$PICTURE_DIR/$filename" ]; then
         print_message "Downloading: $filename..."
-        curl $CURL_QUIET -Lo "$PICTURE_DIR/$filename" "$p"
+        curl $CURL_QUIET -Lo "$PICTURE_DIR/$filename" "$PROTO://cn.bing.com$p"
     else
         print_message "Skipping: $filename..."
     fi
 done
 
 if [ -n "$SET_WALLPAPER" ]; then
+    print_message "Setting desktop picture to: $PICTURE_DIR/$filename..."
     /usr/bin/osascript<<END
-tell application "System Events" to set picture of every desktop to ("$PICTURE_DIR/$filename" as POSIX file as alias)
+tell application "System Events" to tell every desktop to set picture to "$PICTURE_DIR/$filename"
 END
 fi

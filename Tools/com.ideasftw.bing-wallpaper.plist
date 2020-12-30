@@ -4,10 +4,15 @@
 	<dict>
 		<key>Label</key>
 		<string>com.ideasftw.bing-wallpaper</string>
+		<key>UserName</key>
+		<string>username</string>
 		<key>ProgramArguments</key>
 		<array>
 			<string>/bin/bash</string>
 			<string>/Users/username/Pictures/bing-wallpaper.sh</string>
+			<string>-r</string>
+			<string>UHD</string>
+			<string>-w</string>
 		</array>
 		<key>LowPriorityIO</key>
 		<true/>
@@ -20,5 +25,9 @@
 			<key>Minute</key>
 			<integer>0</integer>
 		</dict>
+		<key>StandardOutPath</key>
+		<string>/Users/username/Pictures/logs/bing.log</string>
+		<key>StandardErrorPath</key>
+		<string>/Users/username/Pictures/logs/error.log</string>
 	</dict>
 </plist>
